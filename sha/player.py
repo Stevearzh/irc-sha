@@ -41,6 +41,9 @@ class player:
     def increase_hp(self):
         if self.__hp < self.__max_hp:
             self.__hp += 1
+            return True
+        else:
+            return False
 
     def decrease_hp(self, value):
         self.__hp -= value
