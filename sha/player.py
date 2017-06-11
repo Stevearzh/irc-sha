@@ -38,18 +38,18 @@ class player:
         self.change_max_hp(value)
         self.__hp = value
 
-    def encrease_hp(self):
+    def increase_hp(self):
         if self.__hp < self.__max_hp:
             self.__hp += 1
 
     def decrease_hp(self, value):
         self.__hp -= value
 
-    def set_seat(self, position):
-        self.__position = position
+    def set_seat(self, seat):
+        self.__seat = seat
 
     def get_seat(self):
-        return self.__position
+        return self.__seat
 
     def get_card(self, card):
         self.__cards.append(card)
