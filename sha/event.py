@@ -9,7 +9,7 @@ EVENT = {
     'turn_start': 'turn_start',
     'turn_end': 'turn_end',
 
-    'parse_judge': 'parse_judge',   # delaied trick card effecting
+    'parse_judge': 'parse_judge',
     'parse_start': 'parse_start',
     'card_deal': 'card_deal',
     'parse_process': 'parse_process',
