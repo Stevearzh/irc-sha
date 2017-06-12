@@ -1,28 +1,28 @@
-SUIT = {
+CARD_SUIT = {
     'no_suit': 'no_suit',
     'spade': '♠',
     'heart': '♥',
     'club': '♣',
     'diamond': '♦',
-    'unknown': None
+    'unknown': 'unknown'
 }
 
-COLOR = {
+CARD_COLOR = {
     'no_color': 'no_color',
     'red': 'red',
     'black': 'black',
-    'unknown': None
+    'unknown': 'unknown'
 }
 
-TYPE = {
+CARD_TYPE = {
     'basic': 'basic',
     'trick': 'trick',
     'equip': 'equip',
-    'unknown': None
+    'unknown': 'unknown'
 }
 
 class card:
-    def __init__(self, suit=SUIT['unknown'], color=COLOR['unknown'], type=TYPE['unknown'], point=0):
+    def __init__(self, suit=CARD_SUIT['unknown'], color=CARD_COLOR['unknown'], type=CARD_TYPE['unknown'], point=0):
         self.__suit = suit
         self.__color = color
         self.__type = type
