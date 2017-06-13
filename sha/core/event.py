@@ -31,6 +31,14 @@ EVENT = {
     'hp_recovered': 'hp_recovered',
     'hp_lost': 'hp_lost',
     'hp_lost_effect': 'hp_lost_effect',
+
+    'player_is_dying': 'player_is_dying',
+    'player_not_die': 'player_not_die',
+    'player_ask_peach': 'player_ask_peach',
+    'player_ask_peach_done': 'player_ask_peach_done',
+    'player_died': 'player_died',
+    'game_over_judge': 'game_over_judge',
+    'player_eliminate': 'player_eliminate'
 }
 
 class event:
