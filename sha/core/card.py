@@ -9,11 +9,11 @@ class card:
         self.__name  = name
 
         if not self.__color == CARD_COLOR['no_color']:
-            self.__judge_color()
+            self.__color =self.__judge_color(self.__suit)
 
-    def __judge_color(self):
+    def __judge_color(self, suit):
         try:
-            self.__color = list(filter(lambda r: r['suit'] == self.__suit, [
+             return list(filter(lambda r: r['suit'] == suit, [
                 { 'suit': CARD_SUIT['spade'], 'color': CARD_COLOR['black'] },
                 { 'suit': CARD_SUIT['heart'], 'color': CARD_COLOR['red'] },
                 { 'suit': CARD_SUIT['club'], 'color': CARD_COLOR['black'] },
