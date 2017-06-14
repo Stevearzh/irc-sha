@@ -20,3 +20,9 @@ CARD_TYPE = {
     'equip': '装备牌',
     'unknown': '未知类型'
 }
+
+CARD_NAME ={
+    'sha': '杀',
+    'shan': '闪',
+    'peach': '桃'
+}
