@@ -1,4 +1,5 @@
-from sha.core import CARD_TYPE, card
+from sha.core import card
+from sha.dict.card import CARD_TYPE
 
 class sha(card):
     def __init__(self, suit, point):

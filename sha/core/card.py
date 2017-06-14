@@ -1,25 +1,4 @@
-CARD_SUIT = {
-    'no_suit': 'no_suit',
-    'spade': '♠',
-    'heart': '♥',
-    'club': '♣',
-    'diamond': '♦',
-    'unknown': 'unknown'
-}
-
-CARD_COLOR = {
-    'no_color': 'no_color',
-    'red': 'red',
-    'black': 'black',
-    'unknown': 'unknown'
-}
-
-CARD_TYPE = {
-    'basic': 'basic',
-    'trick': 'trick',
-    'equip': 'equip',
-    'unknown': 'unknown'
-}
+from sha.dict.card import CARD_SUIT, CARD_COLOR, CARD_TYPE
 
 class card:
     def __init__(self, suit=CARD_SUIT['unknown'], color=CARD_COLOR['unknown'], type=CARD_TYPE['unknown'], point=0, name=None):
@@ -34,17 +13,17 @@ class card:
 
     def __judge_color(self):
         try:
-            self.__color = {
-                'spade': 'black',
-                'heart': 'red',
-                'club': 'black',
-                'diamond': 'red'
-            }[self.__suit]
+            self.__color = list(filter(lambda r: r['suit'] == self.__suit, [
+                { 'suit': CARD_SUIT['spade'], 'color': CARD_COLOR['black'] },
+                { 'suit': CARD_SUIT['heart'], 'color': CARD_COLOR['red'] },
+                { 'suit': CARD_SUIT['club'], 'color': CARD_COLOR['black'] },
+                { 'suit': CARD_SUIT['diamond'], 'color': CARD_COLOR['red'] }
+            ]))[0]['color']
         except Exception as e:
             pass
 
     def suit(self):
-        return CARD_SUIT[self.__suit]
+        return self.__suit
 
     def color(self):
         return self.__color
