@@ -41,8 +41,8 @@ class table:
 
     def get_distance(self, nick_a=None, nick_b=None):
         try:
-            pos_a = self.__position.index(nick_a)
-            pos_b = self.__position.index(nick_b)
+            pos_a = self.__list.index(nick_a)
+            pos_b = self.__list.index(nick_b)
             [max, min] = [pos_a, pos_b] if pos_a > pos_b else [pos_b, pos_a]
 
             distance = max - min
