@@ -9,7 +9,7 @@ class card:
         self.__name  = name
 
         if not self.__color == CARD_COLOR['no_color']:
-            self.__color =self.__judge_color(self.__suit)
+            self.__color = self.__judge_color(self.__suit)
 
     def __judge_color(self, suit):
         try:

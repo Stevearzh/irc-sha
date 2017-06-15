@@ -1,14 +1,30 @@
 import random
-from functools import reduce
+from functools import reduce, wraps
 
 from .identity import gen_id_list
 from sha.dict.identity import IDENTITY
 
 SUPPORTED_SIZE = [5, 8]
 
+def process_pack(table):
+    @wraps(table)
+    def wrapper(self, nick_list, card_list=[]):
+        '''Add default package if not added yet'''
+        pro_card_list = list(card_list)
+
+        try:
+            pro_card_list.index('common')   # default card package
+        except Exception as e:
+            pro_card_list.insert(0, 'common')
+
+        return table(self, nick_list, pro_card_list)
+    return wrapper
+
 class table:
-    def __init__(self, nick_list):
-        self.__size = len(nick_list)
+    @process_pack
+    def __init__(self, nick_list, card_list=[]):
+        self.__size      = len(nick_list)
+        self.__card_list = card_list
 
         if not reduce(lambda res, num: res or self.__size == num, SUPPORTED_SIZE, False):
             raise ValueError('irc-sha now only support for 5 or 8 players!')
@@ -39,7 +55,7 @@ class table:
             'id': self.__filter_id(p['id'], IDENTITY['king'])
         }), secret_list))
 
-    def get_distance(self, nick_a=None, nick_b=None):
+    def distance(self, nick_a=None, nick_b=None):
         try:
             pos_a = self.__list.index(nick_a)
             pos_b = self.__list.index(nick_b)
@@ -53,8 +69,11 @@ class table:
         except Exception as e:
             return -1
 
-    def get_secret(self):
+    def secret(self):
         return self.__secret
 
-    def show_table(self):
+    def show(self):
         return self.__detail
+
+    def card_type(self):
+        return self.__card_list
