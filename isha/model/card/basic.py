@@ -1,5 +1,5 @@
-from sha.core import card
-from sha.dict.card import CARD_TYPE, CARD_NAME
+from isha.core.card import card
+from isha.dict.card import CARD_TYPE, CARD_NAME
 
 class sha(card):
     def __init__(self, suit, point):

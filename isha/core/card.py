@@ -1,4 +1,4 @@
-from sha.dict.card import CARD_SUIT, CARD_COLOR, CARD_TYPE
+from isha.dict.card import CARD_SUIT, CARD_COLOR, CARD_TYPE
 
 class card:
     def __init__(self, suit=CARD_SUIT['unknown'], color=CARD_COLOR['unknown'], type=CARD_TYPE['unknown'], point=0, name=None):

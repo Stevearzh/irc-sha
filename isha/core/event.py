@@ -1,4 +1,4 @@
-from sha.dict.event import EVENT
+from isha.dict.event import EVENT
 
 class event:
     def __init__(self, type, effect):

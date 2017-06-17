@@ -1,6 +1,6 @@
 import random
 
-from sha.dict.identity import IDENTITY
+from isha.dict.identity import IDENTITY
 
 def gen_id_list(num):
     if num == 5:   # 1 king, 1 minister, 2 rebel and 1 traitor
