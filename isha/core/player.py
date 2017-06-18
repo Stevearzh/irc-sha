@@ -6,12 +6,16 @@ class player:
         self.__hp     = 0
         self.__seat   = -1
         self.__cards  = []
+        self.__id     = None
 
-    def get_nick(self):
+    def nick(self):
         return self.__nick
 
-    def change_nick(self, nick):
-        self.__nick = nick
+    def set_id(self, id):
+        self.__id = id
+
+    def id(self):
+        return self.__id
 
     def is_alive(self):
         return self.__alive
@@ -25,13 +29,13 @@ class player:
     def set_dead(self):
         self.__alive = False
 
-    def get_max_hp(self):
+    def max_hp(self):
         return self.__max_hp
 
     def change_max_hp(self, value):
         self.__max_hp = value
 
-    def get_hp(self):
+    def hp(self):
         return self.__hp
 
     def set_initial_hp(self, value):
@@ -51,8 +55,11 @@ class player:
     def set_seat(self, seat):
         self.__seat = seat
 
-    def get_seat(self):
+    def seat(self):
         return self.__seat
 
     def get_card(self, card):
         self.__cards.append(card)
+
+    def card(self):
+        return self.__cards

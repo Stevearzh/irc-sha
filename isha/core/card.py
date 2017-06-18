@@ -33,3 +33,6 @@ class card:
 
     def name(self):
         return self.__name
+
+    def type(self):
+        return self.__type

@@ -6,8 +6,8 @@ EVENT = {
     'game_start': '游戏开始',
     'game_end': '游戏结束',
 
-    'turn_start': '回合开始',
-    'turn_end': '回合结束',
+    'turn_start': '轮圈开始',
+    'turn_end': '轮圈结束',
 
     'parse_judge': '判定阶段',
     'parse_start': '回合开始',
