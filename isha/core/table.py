@@ -34,6 +34,7 @@ class table:
         else:
             self.__list = list(map(lambda p: player(p), nick_list))
             random.shuffle(self.__list)   # random players' position
+            self.__nicks = list(map(lambda p: p.nick(), self.__list))
             self.__set_ids(self.__size, self.__list, gen_id_list(self.__size))
             self.__position = self.__get_names(self.__list)   # cloak all identities except the king
 
@@ -48,8 +49,8 @@ class table:
 
     def distance(self, nick_a=None, nick_b=None):
         try:
-            pos_a = self.__list.index(nick_a)
-            pos_b = self.__list.index(nick_b)
+            pos_a = self.__nicks.index(nick_a)
+            pos_b = self.__nicks.index(nick_b)
             [max, min] = [pos_a, pos_b] if pos_a > pos_b else [pos_b, pos_a]
 
             distance = max - min
@@ -63,7 +64,7 @@ class table:
     def show(self):
         return self.__position
 
-    def list(self):
+    def players(self):
         return self.__list
 
     def card_type(self):
