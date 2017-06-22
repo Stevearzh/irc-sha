@@ -5,7 +5,7 @@ class event_card_shuffle(event):
     def __init__(self):
         event.__init__(self, EVENT['card_shuffle'], self.__effect)
 
-    def __effect(self, table, source=None):
+    def __effect(self, table):
         table.shuffle_card()
 
 card_shuffle = event_card_shuffle()

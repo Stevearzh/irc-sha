@@ -11,5 +11,5 @@ class event:
     def type(self):
         return self.__type
 
-    def __call__(self, target, source=None):
-        return self.__effect(target, source)
+    def __call__(self, *args, **kwargs):   # usually the params are target and source
+        return self.__effect(*args, **kwargs)

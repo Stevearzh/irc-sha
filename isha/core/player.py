@@ -1,3 +1,5 @@
+from isha.dict.identity import IDENTITY
+
 class player:
     def __init__(self, nick):
         self.__nick   = nick   # player's nick in irc
@@ -14,8 +16,17 @@ class player:
     def set_id(self, id):
         self.__id = id
 
-    def id(self):
+    def secret(self):
         return self.__id
+
+    def id(self):
+        if self.is_king() or self.is_dead():
+            return self.__id
+        else:
+            return IDENTITY['unknown']
+
+    def is_king(self):
+        return self.__id == IDENTITY['king']
 
     def is_alive(self):
         return self.__alive

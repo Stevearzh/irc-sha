@@ -2,6 +2,7 @@ EVENT = {
     'unknown': '未知事件',
 
     'card_shuffle': '洗牌',
+    'set_max_hp': '设定血量上限',
 
     'game_start': '游戏开始',
     'game_end': '游戏结束',

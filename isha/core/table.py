@@ -4,7 +4,6 @@ from functools import reduce, wraps
 from .player import player
 from .identity import gen_id_list
 from .factory import card_generator
-from isha.dict.identity import IDENTITY
 
 SUPPORTED_SIZE = [5, 8]
 
@@ -34,9 +33,9 @@ class table:
         else:
             self.__list = list(map(lambda p: player(p), nick_list))
             random.shuffle(self.__list)   # random players' position
-            self.__nicks = list(map(lambda p: p.nick(), self.__list))
             self.__set_ids(self.__size, self.__list, gen_id_list(self.__size))
-            self.__position = self.__get_names(self.__list)   # cloak all identities except the king
+            self.__list = self.__sort_by_id(self.__list, self.king_player())   # reseat player according to their id
+            self.__nicks = list(map(lambda p: p.nick(), self.__list))
 
     def __set_ids(self, length, nick_list, id_list):
         if not len(nick_list) == len(id_list):
@@ -44,8 +43,17 @@ class table:
 
         list(map(lambda i: nick_list[i].set_id(id_list[i]), list(range(length))))
 
-    def __get_names(self, player_list):
-        return list(map(lambda p: '*' + p.nick() if p.id() == IDENTITY['king'] else p.nick(), player_list))
+    def __sort_by_id(self, player_list, king):
+        [result, i, j] = [[], player_list.index(king), 0]
+
+        while i < len(player_list):
+            result.append(player_list[i])
+            i += 1
+        while len(result) < len(player_list):
+            result.append(player_list[j])
+            j += 1
+
+        return result
 
     def distance(self, nick_a=None, nick_b=None):
         try:
@@ -61,8 +69,16 @@ class table:
         except Exception as e:
             return -1
 
+    def __show_player(self, player):
+        nick   = player.nick()
+        hp     = player.hp()
+        max_hp = player.max_hp()
+        id     = player.id()
+
+        return 'Nick: %s, HP: %d, Max HP: %d, ID: %s' % (nick, hp, max_hp, id)
+
     def show(self):
-        return self.__position
+        return '\n'.join(list(map(lambda player: self.__show_player(player), self.players())))
 
     def players(self):
         return self.__list
@@ -78,3 +94,6 @@ class table:
 
     def deal_card(self):
         return self.__card_stack.pop()
+
+    def king_player(self):
+        return list(filter(lambda player: player.is_king(), self.__list))[0]
