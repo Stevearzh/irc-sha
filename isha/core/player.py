@@ -1,4 +1,5 @@
 from isha.dict.identity import IDENTITY
+from isha.dict.card import CARD_SUIT
 
 class player:
     def __init__(self, nick):
@@ -74,3 +75,38 @@ class player:
 
     def card(self):
         return self.__cards
+
+    def explain_card_choose(self):
+        return '，'.join([
+            '使用 <花色><点数><名字> 来选取你要出的牌',
+            '使用 S 来表示花色黑桃 ♠',
+            '使用 H 来表示花色红桃 ♥',
+            '使用 C 来表示花色梅花 ♣',
+            '使用 D 来表示花色方片 ♦',
+            '例如：DK杀、d6闪、S9杀、h10杀、dq桃'
+        ])
+
+    def choose_card(self, string, stack):
+        suit = {
+            'S': CARD_SUIT['spade'],
+            'H': CARD_SUIT['heart'],
+            'C': CARD_SUIT['club'],
+            'D': CARD_SUIT['diamond']
+        }[string[0].upper()]
+
+        if string[1] == '1':
+            point = string[1: 3]
+            name  = string[3:]
+        else:
+            point = string[1].upper()
+            name  = string[2:]
+
+        result = list(filter(lambda card: card.suit() == suit and card.point() == point and card.name() == name, stack))
+        if len(result):
+            return result[0]
+        else:
+            return None
+
+    def use_card(self, card, stack):
+        index = stack.index(card)
+        stack.pop(index)

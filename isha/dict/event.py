@@ -19,8 +19,9 @@ EVENT = {
     'card_discarded': '棋牌结束',
     'parse_skip': '回合跳过',
 
-    'card_used': '出牌',
+    'card_will_use': '选牌',
     'target_choose': '目标选择',
+    'card_used': '出牌',
     'card_effected': '卡牌生效',
     'card_finished': '卡牌丢弃',
     'card_canceled': '卡牌取消',

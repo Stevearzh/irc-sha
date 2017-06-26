@@ -97,3 +97,6 @@ class table:
 
     def king_player(self):
         return list(filter(lambda player: player.is_king(), self.__list))[0]
+
+    def choose_player_by_nick(self, nick):
+        return list(filter(lambda player: player.nick() == nick, self.__list))[0]
