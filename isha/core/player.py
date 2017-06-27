@@ -1,5 +1,5 @@
 from isha.dict.identity import IDENTITY
-from isha.dict.card import CARD_SUIT
+from isha.dict.status import STATUS
 
 class player:
     def __init__(self, nick):
@@ -7,9 +7,9 @@ class player:
         self.__alive  = True
         self.__max_hp = 0
         self.__hp     = 0
-        self.__seat   = -1
         self.__cards  = []
-        self.__id     = None
+        self.__id     = IDENTITY['unknown']
+        self.__status = STATUS['unknown']
 
     def nick(self):
         return self.__nick
@@ -21,7 +21,7 @@ class player:
         return self.__id
 
     def id(self):
-        if self.is_king() or self.is_dead():
+        if self.is_king() or not(self.is_alive()):
             return self.__id
         else:
             return IDENTITY['unknown']
@@ -31,12 +31,6 @@ class player:
 
     def is_alive(self):
         return self.__alive
-
-    def set_alive(self):
-        self.__alive = True
-
-    def is_dead(self):
-        return not(self.__alive)
 
     def set_dead(self):
         self.__alive = False
@@ -64,49 +58,18 @@ class player:
     def decrease_hp(self, value):
         self.__hp -= value
 
-    def set_seat(self, seat):
-        self.__seat = seat
-
-    def seat(self):
-        return self.__seat
-
     def get_card(self, card):
         self.__cards.append(card)
 
     def card(self):
         return self.__cards
 
-    def explain_card_choose(self):
-        return '，'.join([
-            '使用 <花色><点数><名字> 来选取你要出的牌',
-            '使用 S 来表示花色黑桃 ♠',
-            '使用 H 来表示花色红桃 ♥',
-            '使用 C 来表示花色梅花 ♣',
-            '使用 D 来表示花色方片 ♦',
-            '例如：DK杀、d6闪、S9杀、h10杀、dq桃'
-        ])
+    def choose_card(self, card):
+        index = self.__cards.index(card)
+        return self.__cards.pop(index)
 
-    def choose_card(self, string, stack):
-        suit = {
-            'S': CARD_SUIT['spade'],
-            'H': CARD_SUIT['heart'],
-            'C': CARD_SUIT['club'],
-            'D': CARD_SUIT['diamond']
-        }[string[0].upper()]
+    def status(self):
+        return self.__status
 
-        if string[1] == '1':
-            point = string[1: 3]
-            name  = string[3:]
-        else:
-            point = string[1].upper()
-            name  = string[2:]
-
-        result = list(filter(lambda card: card.suit() == suit and card.point() == point and card.name() == name, stack))
-        if len(result):
-            return result[0]
-        else:
-            return None
-
-    def use_card(self, card, stack):
-        index = stack.index(card)
-        stack.pop(index)
+    def change_status(self, status):
+        self.__status = status
