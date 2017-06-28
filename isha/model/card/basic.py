@@ -1,23 +1,25 @@
 from isha.core.card import card
 from isha.dict.card import CARD_TYPE, CARD_NAME
-from isha.dict.status import STATUS
 
 class sha(card):
+    effect = 'become_sha_target'
+
     def __init__(self, suit, point):
         card.__init__(self, suit=suit, type=CARD_TYPE['basic'], point=point,
             name=CARD_NAME['sha'], effect=self.__effect, need_target=True)
 
     def __effect(self, player):
-        # player.change_status(STATUS['being_sha'])
-        pass   # should use fsm here
+        eval('player.' + sha.effect + '()')
 
 class shan(card):
+    effect = 'shan_used'
+
     def __init__(self, suit, point):
         card.__init__(self, suit=suit, type=CARD_TYPE['basic'], point=point,
             name=CARD_NAME['shan'], effect=self.__effect)
 
     def __effect(self, player):
-        pass
+        eval('player.' + shan.effect + '()')
 
 class peach(card):
     def __init__(self, suit, point):

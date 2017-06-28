@@ -26,7 +26,7 @@ def process_pack(table):
 class table:
     @process_pack
     def __init__(self, card_path, nick_list, card_list):
-        self.__size = len(nick_list)        
+        self.__size = len(nick_list)
 
         if not reduce(lambda res, num: res or self.__size == num, SUPPORTED_SIZE, False):
             raise ValueError('irc-sha now only support for 5 or 8 players!')
@@ -36,11 +36,12 @@ class table:
             self.__set_ids(self.__size, self.__list, gen_id_list(self.__size))
             self.__list = self.__sort_by_id(self.__list, self.king_player())   # reseat player according to their id
 
-        self.__card_stack = card_generator(card_path, card_list)
-        self.__used_cards = []
-        self.__card_type  = card_list
-        self.__judgement  = dispatcher(self)
-        self.__calculator = calculator(self)
+        self.__card_stack   = card_generator(card_path, card_list)
+        self.__active_stack = []
+        self.__used_cards   = []
+        self.__card_type    = card_list
+        self.__judgement    = dispatcher(self)
+        self.__calculator   = calculator(self)
 
     def __set_ids(self, length, nick_list, id_list):
         if not len(nick_list) == len(id_list):
@@ -71,9 +72,10 @@ class table:
         hp     = player.hp()
         max_hp = player.max_hp()
         id     = player.id()
-        alive  = 'Yes' if player.is_alive() else 'No'
+        state  = player.state
+        hc_num = len(player.card())
 
-        return 'Nick: {0}, HP: {1}, Max HP: {2}, ID: {3}, Alive: {4}'.format(nick, hp, max_hp, id, alive)
+        return 'Nick: {0}, HP: {1}, Max HP: {2}, ID: {3}, State: {4}, {5} Cards In Hand'.format(nick, hp, max_hp, id, state, hc_num)
 
     def show(self):
         result = 'Rest cards: {0}, Used cards: {1}\n\n'.format(self.rest_cards(), self.used_cards());
@@ -126,3 +128,9 @@ class table:
 
     def judge(self, *args, **kwargs):
         self.__judgement(*args, **kwargs)
+
+    def using_card(self, card):
+        self.__active_stack.insert(len(self.__active_stack), card)
+
+    def show_desktop(self):
+        return ', '.join(list(map(lambda card: card.suit() + card.point() + card.name(), self.__active_stack)))

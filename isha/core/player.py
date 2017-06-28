@@ -1,15 +1,20 @@
+from transitions import Machine
+
 from isha.dict.identity import IDENTITY
-from isha.dict.status import STATUS
+from isha.dict.status import STATUS_DICT, STATUS, TRANSITIONS
 
 class player:
     def __init__(self, nick):
-        self.__nick   = nick   # player's nick in irc
-        self.__alive  = True
-        self.__max_hp = 0
-        self.__hp     = 0
-        self.__cards  = []
-        self.__id     = IDENTITY['unknown']
-        self.__status = STATUS['unknown']
+        self.__nick    = nick   # player's nick in irc
+        self.__alive   = True
+        self.__max_hp  = 0
+        self.__hp      = 0
+        self.__range   = 1
+        self.__cards   = []
+        self.__id      = IDENTITY['unknown']
+        self.__machine = Machine(model=self, states=STATUS, initial=STATUS_DICT['normal'])
+
+        list(map(lambda t: self.__machine.add_transition(t['trigger'], t['source'], t['dest']), TRANSITIONS))
 
     def nick(self):
         return self.__nick
@@ -58,6 +63,9 @@ class player:
     def decrease_hp(self, value):
         self.__hp -= value
 
+    def range(self):
+        return self.__range
+
     def get_card(self, card):
         self.__cards.append(card)
 
@@ -65,11 +73,6 @@ class player:
         return self.__cards
 
     def choose_card(self, card):
-        index = self.__cards.index(card)
-        return self.__cards.pop(index)
-
-    def status(self):
-        return self.__status
-
-    def change_status(self, status):
-        self.__status = status
+        if card:
+            index = self.__cards.index(card)
+            return self.__cards.pop(index)
