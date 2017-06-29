@@ -5,7 +5,7 @@ from isha.model.card.basic import sha, shan
 STATUS_DICT = {
     'unknown':        State('未知'),
     'normal':         State('正常'),
-    'being_sha':      State('被杀'),
+    'being_sha':      State('响应杀'),
     'damage_confirm': State('伤害结算'),
     'dying':          State('濒死'),
     'died':           State('死亡')

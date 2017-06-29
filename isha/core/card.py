@@ -2,14 +2,17 @@ from isha.dict.card import CARD_SUIT, CARD_COLOR, CARD_TYPE
 
 class card:
     def __init__(self, suit=CARD_SUIT['unknown'], color=CARD_COLOR['unknown'],
-        type=CARD_TYPE['unknown'], point=0, name=None, effect=None, need_target=False):
-        self.__suit   = suit
-        self.__color  = color
-        self.__type   = type
-        self.__point  = str(point)
-        self.__name   = name
-        self.__ndt    = need_target
-        self.__effect = effect
+                 type=CARD_TYPE['unknown'], point=0, name=None, trigger = None,
+                 effect=None, need_target=False, could_use_judge=None):
+        self.__suit    = suit
+        self.__color   = color
+        self.__type    = type
+        self.__point   = str(point)
+        self.__name    = name
+        self.__ndt     = need_target
+        self.__trigger = trigger
+        self.__effect  = effect
+        self.__cujudge = could_use_judge
 
         if not self.__color == CARD_COLOR['no_color']:
             self.__color = self.__judge_color(self.__suit)
@@ -44,7 +47,13 @@ class card:
         return self.__ndt
 
     def __call__(self, *args, **kwargs):
+        self.__trigger(*args, **kwargs)
+
+    def effect(self, *args, **kwargs):
         self.__effect(*args, **kwargs)
+
+    def could_use(self, *args, **kwargs):
+        return self.__cujudge(*args, **kwargs)
 
 def explain_card_assign():
     return '，'.join([

@@ -10,4 +10,3 @@ class dispatcher:
         to_nick   = self.__table.choose_player_by_nick(to_whom) if to_whom else None
         if event_why == EVENT['card_used']:
             card_parser(self.__table, obj, from_nick, to_nick)
-            # damage calculate, drop card, etc.

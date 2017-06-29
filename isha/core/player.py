@@ -10,6 +10,7 @@ class player:
         self.__max_hp  = 0
         self.__hp      = 0
         self.__range   = 1
+        self.__use_sha = True
         self.__cards   = []
         self.__id      = IDENTITY['unknown']
         self.__machine = Machine(model=self, states=STATUS, initial=STATUS_DICT['normal'])
@@ -76,3 +77,9 @@ class player:
         if card:
             index = self.__cards.index(card)
             return self.__cards.pop(index)
+
+    def can_use_sha(self):
+        return self.__use_sha
+
+    def used_sha(self):
+        self.__use_sha = False
