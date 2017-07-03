@@ -5,21 +5,23 @@ class sha(card):
     effect = 'become_sha_target'
     passive_effect = 'sha_used'
 
-    def __init__(self, suit, point, passive=False):
+    def __init__(self, suit, point):
         card.__init__(self, suit=suit, type=CARD_TYPE['basic'], point=point,
                       name=CARD_NAME['sha'], trigger=self.__trigger,
                       effect=self.__effect, need_target=True,
                       could_use_judge=self.__could_use_judge)
-        self.__passive = passive
 
-    def __could_use_judge(self, from_whom, to_whom):
-        return True
+    def __could_use_judge(self, from_whom, to_whom, passive=False):
+        if not passive:
+            return True
+        else:
+            return True   # should judge if could use here
 
-    def __trigger(self, player):
-        if not self.__passive:
+    def __trigger(self, player, passive=False):
+        if not passive:
             return eval('player.' + sha.effect + '()')
         else:
-            return True
+            return True   # player response sha here
 
     def __effect(self, player):
         if not self.__passive:
@@ -42,7 +44,6 @@ class shan(card):
         card.__init__(self, suit=suit, type=CARD_TYPE['basic'], point=point,
                       name=CARD_NAME['shan'], trigger=self.__trigger,
                       effect=self.__effect, could_use_judge=self.__could_use_judge)
-        self.__passive = True
 
     def __could_use_judge(self, from_whom, to_whom):
         return True
@@ -56,16 +57,18 @@ class shan(card):
         }
 
 class peach(card):
-    def __init__(self, suit, point, passive=False):
+    def __init__(self, suit, point):
         card.__init__(self, suit=suit, type=CARD_TYPE['basic'], point=point,
                       name=CARD_NAME['peach'], trigger=self.__trigger,
                       effect=self.__effect， could_use_judge=self.__could_use_judge)
-        self.__passive = passive
 
-    def __could_use_judge(self, from_whom, to_whom):
-        return True
+    def __could_use_judge(self, from_whom, to_whom, passive=False):
+        if not passive:
+            return True
+        else:
+            return True # should judge could use peach to himself/herself
 
-    def __trigger(self, player):
+    def __trigger(self, player, passive=False):
         return True
 
     def __effect(self, player):
