@@ -206,14 +206,15 @@ function render() {
   hand.innerHTML = '';
   for (const c of state.hand) {
     const div = document.createElement('div');
+    const clickable = c.playable || c.pairable;
     div.className = 'card ' + (isRed(c.label) ? 'red' : 'black')
-      + (c.playable ? ' playable' : ' disabled')
+      + (clickable ? ' playable' : ' disabled')
       + (c.face_down ? ' face_down' : '')
       + (selected.has(c.cid) ? ' selected' : '');
     const name = c.label.replace(/^[♠♥♣♦][0-9AJQK]+/, '');
     div.innerHTML = `<div>${c.label.slice(0, -name.length)}</div>
       <div class="name">${name}</div>`;
-    if (c.playable || (ask && ask.kind === 'play' && ask.zhangba))
+    if (clickable || (ask && ask.kind === 'play' && ask.zhangba))
       div.onclick = () => clickCard(c);
     hand.appendChild(div);
   }
@@ -272,6 +273,16 @@ function renderActions(ask, targets) {
     addHint(actions, '点击选择一张牌（暗牌为目标的手牌，只能按位置盲选）');
   } else if (ask.kind === 'choose_player') {
     addHint(actions, '点击上方一名玩家作为出杀目标');
+  } else if (ask.kind === 'borrow_sha' && ask.zhangba) {
+    // 丈八蛇矛：单出一张杀，或任选两张手牌当杀
+    addHint(actions, '打出一张杀，或任选两张手牌当杀（丈八蛇矛），否则交出武器');
+    const single = selected.size === 1
+      && state.hand.find(h => h.cid === [...selected][0]);
+    const ok = addBtn(actions, '确定打出',
+      () => act({type: 'play', cids: [...selected]}));
+    ok.className = 'confirm';
+    ok.disabled = !(selected.size === 2 || (single && single.playable));
+    addBtn(actions, '交出武器', () => act({type: 'pass'}));
   } else {
     const passLabels = {respond_sha: '不出闪', peach: '不出桃',
                         negate: '不出无懈可击', duel: '不出杀',
@@ -307,6 +318,15 @@ function clickCard(c) {
     render();
   } else if (ask.kind === 'discard' || ask.kind === 'guanshi') {
     selected.has(c.cid) ? selected.delete(c.cid) : selected.add(c.cid);
+    render();
+  } else if (ask.kind === 'borrow_sha' && ask.zhangba) {
+    // 丈八蛇矛：点选一张杀或任选两张手牌，确认后打出
+    if (selected.has(c.cid)) {
+      selected.delete(c.cid);
+    } else {
+      if (selected.size >= 2) selected.clear();
+      selected.add(c.cid);
+    }
     render();
   } else {   // respond_sha / peach / chase / qilin / borrow_sha / choose_card / harvest
     act({type: 'play', cids: [c.cid]});

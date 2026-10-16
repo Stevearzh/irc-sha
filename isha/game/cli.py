@@ -7,9 +7,9 @@
 
 操作：
     play 阶段       0（手牌序号）或 h10杀（花色+点数+名字，名字可省）；
-                    目标可同行给出（0 b / h10杀 b），省略时列出可选目标
-                    供二次选择（q / 99 取消）；方天画戟最后一张杀可多目标
-                    （s7杀 b c d）；p 结束出牌
+                    目标可同行给出（0 b / h10杀 b，昵称或目标序号均可），
+                    省略时列出可选目标供二次选择（q / 99 取消）；
+                    方天画戟最后一张杀可多目标（s7杀 b c d）；p 结束出牌
     respond_sha     h2闪 / p（不出闪）
     peach           h3桃 / p（不出，本轮濒死不再询问）
     negate          只列出可出的无懈可击；目标本人另提示手上的杀/闪等响应牌；
@@ -18,6 +18,8 @@
     discard         0 1 ... 或 h10杀 s7杀 ...（空格分开，数量须符合要求）
     choose_card     输入序号选择（顺手/过河：暗牌按位置盲选）
     choose_player   输入序号或昵称选择目标玩家（借刀杀人）
+    borrow_sha      序号/引用出杀，p 交出武器；有丈八蛇矛时可两张手牌当杀
+                    （h10杀 s7闪 或手牌序号 0 2）
     通用            show（看局势）/ hand（看自己手牌）/ help / t（超时托管）
 """
 
@@ -53,6 +55,13 @@ def parse_cards(refs: list[str], hand) -> list | None:
         pool.remove(card)
         cards.append(card)
     return cards
+
+
+def resolve_target(token: str, targets: list[str]) -> str | None:
+    """同行给出的目标：可以是昵称，也可以是可选目标列表中的序号。"""
+    if token.isdigit() and int(token) < len(targets):
+        return targets[int(token)]
+    return token if token in targets else None
 
 
 def ask_target(targets: list[str]):
@@ -94,6 +103,9 @@ def prompt(eng: Engine, ask: Ask):
                              f"{labels or '（无）'}")
         if ask.kind == 'peach':
             line_out += '（序号/引用出桃；p 不出，本轮濒死不再询问）'
+        if ask.kind == 'borrow_sha' and ask.data.get('zhangba'):
+            line_out += ('（丈八蛇矛：可打出两张手牌当杀，'
+                         '如 h10杀 s7闪 或手牌序号 0 2）')
         if ask.data.get('armor'):
             line_out += '（g 八卦阵判定）'
         print(line_out)
@@ -169,27 +181,35 @@ def prompt(eng: Engine, ask: Ask):
                        if lab == label or (not ref[2] and lab.startswith(label))]
                 if hit:
                     return PlayCards(ask.player, (hit[0],))
-        elif ask.kind == 'play' and ask.data.get('zhangba') \
-                and len(line.split()) in (2, 3):
-            # 丈八蛇矛：两张牌当杀（"h10杀 s7杀 b" 或序号 "0 2 b"，目标可后补）
-            parts = line.split()
-            cards = parse_cards(parts[:2], p.hand)
-            if cards:
-                target = parts[2] if len(parts) == 3 else None
-                if target not in ask.data['zhangba']:
-                    target = ask_target(ask.data['zhangba'])
-                    if target is None:
-                        continue
-                return PlayCards(ask.player, tuple(c.cid for c in cards),
-                                 target)
         else:
             parts = line.split()
             token = parts[0]
+            if ask.kind == 'borrow_sha' and ask.data.get('zhangba') \
+                    and len(parts) == 2:
+                # 借刀杀人 + 丈八蛇矛：两张手牌当杀（引用或手牌序号）
+                zb_cards = parse_cards(parts, p.hand)
+                if zb_cards:
+                    return PlayCards(ask.player,
+                                     tuple(c.cid for c in zb_cards))
             if 'cards' in ask.data and token.isdigit() \
                     and int(token) < len(ask.data['cards']):
                 # 响应窗口：序号对应上方"可出的牌"列表
                 return PlayCards(ask.player,
                                  (ask.data['cards'][int(token)][0],))
+            zb_targets = ask.data.get('zhangba') if ask.kind == 'play' else None
+            if zb_targets and len(parts) in (2, 3):
+                # 丈八蛇矛：两张牌当杀（"h10杀 s7杀 b" 或序号 "0 2 b"）。
+                # 前两个词不都是牌时按普通"牌+目标"继续解析
+                zb_cards = parse_cards(parts[:2], p.hand)
+                if zb_cards:
+                    target = resolve_target(parts[2], zb_targets) \
+                        if len(parts) == 3 else None
+                    if target is None:
+                        target = ask_target(zb_targets)
+                        if target is None:
+                            continue
+                    return PlayCards(ask.player,
+                                     tuple(c.cid for c in zb_cards), target)
             cards = parse_cards([token], p.hand)
             if cards:
                 card = cards[0]
@@ -199,8 +219,13 @@ def prompt(eng: Engine, ask: Ask):
                     targets = ask.data['options'].get(card.cid)
                     if targets:
                         limit = ask.data.get('multi', {}).get(card.cid, 1)
-                        # 方天画戟等多目标：同行可给多个目标（s7杀 b c d）
-                        picks = [t for t in parts[1:] if t in targets][:limit]
+                        # 目标同行给出（昵称或序号）；方天画戟可多选（s7杀 b c d）
+                        picks = []
+                        for t in parts[1:]:
+                            t = resolve_target(t, targets)
+                            if t is not None and t not in picks:
+                                picks.append(t)
+                        picks = picks[:limit]
                         if not picks:
                             picked = ask_target(targets)
                             if picked is None:

@@ -215,8 +215,13 @@ class Game:
             allowed = {c.cid for c in p.hand}
         else:   # respond_sha / peach / negate / respond_aoe / duel / chase / qilin
             allowed = {cid for cid, _ in ask.data.get('cards', [])}
-        return [{'cid': c.cid, 'label': c.label, 'playable': c.cid in allowed}
+        hand = [{'cid': c.cid, 'label': c.label, 'playable': c.cid in allowed}
                 for c in p.hand]
+        if ask.kind == 'borrow_sha' and ask.data.get('zhangba'):
+            # 丈八蛇矛：除单出杀外，任意两张手牌可当杀打出
+            for entry in hand:
+                entry['pairable'] = True
+        return hand
 
 
 class Handler(BaseHTTPRequestHandler):

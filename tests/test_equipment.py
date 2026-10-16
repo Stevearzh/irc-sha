@@ -421,6 +421,74 @@ def test_borrow_sword_needs_weapon():
         play_card(eng, 'a', BORROW, 'b')   # 无人装备武器，借刀不可用
 
 
+def _borrow_zhangba_setup(b_hand):
+    """b 装备丈八蛇矛；a 借刀指定 b 杀 c 后，停在 b 的出杀响应窗口。"""
+    hands = sha_hands()
+    hands[0] = [BORROW, SHA, SHA, SHA]
+    hands[1] = b_hand
+    eng = start_engine(hands)
+    eng.player('b').weapon = equip(900, ZHANGBA, '3')
+    eng.pending = eng._play_ask(eng.king)   # 白盒：装武器后重建出牌询问
+    play_card(eng, 'a', BORROW, 'b')
+    eng.apply(PlayCards('a', (), 'c'))
+    assert eng.pending.kind == 'borrow_sha' and eng.pending.player == 'b'
+    return eng
+
+
+def test_borrow_sword_zhangba_two_cards():
+    """无杀但有丈八蛇矛且手牌 ≥2：可两张手牌当杀，武器保留。"""
+    eng = _borrow_zhangba_setup([SHAN, SHAN, PEACH, SHAN])
+    ask = eng.pending
+    assert ask.data['zhangba'] and ask.data['cards'] == []   # 没有真杀可出
+    c0, c1 = (c.cid for c in eng.player('b').hand[:2])
+    effects = eng.apply(PlayCards('b', (c0, c1)))            # 两牌当杀
+    assert eng.player('c').hp == 3                           # 虚拟杀命中
+    assert eng.player('b').weapon is not None                # 出杀成功，武器保留
+    assert 'weapon_gained' not in kinds(effects)
+
+
+def test_borrow_sword_zhangba_decline():
+    """有丈八蛇矛但选择不发动：武器照常交给借刀者。"""
+    eng = _borrow_zhangba_setup([SHAN, SHAN, PEACH, SHAN])
+    effects = eng.apply(Pass('b'))
+    assert 'weapon_gained' in kinds(effects)
+    assert eng.player('b').weapon is None
+    assert ZHANGBA in [c.name for c in eng.king.hand]
+
+
+def test_borrow_sword_zhangba_or_real_sha():
+    """同时有杀和丈八蛇矛：出真杀或用两牌当杀均可。"""
+    eng = _borrow_zhangba_setup([SHA, SHAN, PEACH, SHAN])
+    ask = eng.pending
+    assert ask.data['zhangba'] and len(ask.data['cards']) == 1
+    eng.apply(PlayCards('b', (cid(eng, 'b', SHA),)))         # 出真杀
+    assert eng.player('c').hp == 3
+    assert eng.player('b').weapon is not None
+
+    eng = _borrow_zhangba_setup([SHA, SHAN, PEACH, SHAN])
+    c1, c2 = (c.cid for c in eng.player('b').hand[1:3])      # 两牌当杀
+    eng.apply(PlayCards('b', (c1, c2)))
+    assert eng.player('c').hp == 3
+    assert eng.player('b').weapon is not None
+
+
+def test_borrow_sword_zhangba_rejects_bad_cids():
+    """单张非杀、同一张牌计两次、无丈八蛇矛出两牌，均为非法动作。"""
+    eng = _borrow_zhangba_setup([SHAN, SHAN, PEACH, SHAN])
+    b = eng.player('b')
+    with pytest.raises(IllegalAction):
+        eng.apply(PlayCards('b', (b.hand[0].cid,)))          # 单张非杀
+    with pytest.raises(IllegalAction):
+        eng.apply(PlayCards('b', (b.hand[0].cid, b.hand[0].cid)))
+
+    eng = _borrow_setup()       # b 装的是青釭剑，手牌有杀
+    play_card(eng, 'a', BORROW, 'b')
+    eng.apply(PlayCards('a', (), 'c'))
+    b = eng.player('b')
+    with pytest.raises(IllegalAction):
+        eng.apply(PlayCards('b', (b.hand[0].cid, b.hand[1].cid)))
+
+
 # ---------- 装备区拆顺 / 死亡清理 ----------
 
 def test_dismantle_equipment():

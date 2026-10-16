@@ -39,16 +39,23 @@ class ZhangbaRule(WeaponRule):
                 and action.target in targets)
 
     def resolve_extra(self, eng, p, action) -> Frame:
-        cards = [eng.play_card(p, cid) for cid in action.cids]
         p.used_sha = True
+        yield from self.as_sha(eng, p, action.cids, action.target)
+
+    def as_sha(self, eng, p, cids, target) -> Frame:
+        """两张手牌当杀打出（虚拟杀，复用杀的结算帧）。
+
+        不含出牌阶段的 used_sha 记账，借刀杀人等回合外响应也可复用。
+        """
+        cards = [eng.play_card(p, cid) for cid in cids]
         label = '+'.join(c.label for c in cards)
         # 虚拟杀的颜色：两牌同色取该色，异色则为无色（仁王盾只挡黑杀）
         colors = {c.color for c in cards}
         color = colors.pop() if len(colors) == 1 else CARD_COLOR['no_color']
-        eng.emit('card_used', nick=p.nick, target=action.target,
+        eng.emit('card_used', nick=p.nick, target=target,
                  label=f'{self.name}[{label}]当杀')
         yield from eng.rules[eng.sha_card].sha_effect(
-            eng, p, eng.player(action.target), label, color)
+            eng, p, eng.player(target), label, color)
 
 
 WEAPON_NAMES = [CARD_NAME[k] for k in

@@ -136,7 +136,10 @@ def render_hint(ask) -> str:
             return f"借刀杀人：选择 {ask.data['holder']} 要出杀的目标"
         case 'borrow_sha':
             d = ask.data
-            return f"借刀杀人：对 {d['target']} 出杀，否则武器交给 {d['source']}"
+            hint = f"借刀杀人：对 {d['target']} 出杀，否则武器交给 {d['source']}"
+            if d.get('zhangba'):
+                hint += '（丈八蛇矛：可打出两张手牌当杀）'
+            return hint
         case 'chase':
             return f"青龙偃月刀：可对 {ask.data['target']} 再出一张杀"
         case 'guanshi':
