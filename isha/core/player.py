@@ -1,85 +1,67 @@
-from transitions import Machine
+"""玩家状态：手牌、判定区、装备区与基础属性。"""
+
+from __future__ import annotations
 
 from isha.dict.identity import IDENTITY
-from isha.dict.status import STATUS_DICT, STATUS, TRANSITIONS
 
-class player:
-    def __init__(self, nick):
-        self.__nick    = nick   # player's nick in irc
-        self.__alive   = True
-        self.__max_hp  = 0
-        self.__hp      = 0
-        self.__range   = 1
-        self.__use_sha = True
-        self.__cards   = []
-        self.__id      = IDENTITY['unknown']
-        self.__machine = Machine(model=self, states=STATUS, initial=STATUS_DICT['normal'])
+from .cards import Card
 
-        list(map(lambda t: self.__machine.add_transition(t['trigger'], t['source'], t['dest']), TRANSITIONS))
 
-    def nick(self):
-        return self.__nick
+class PlayerState:
+    def __init__(self, nick: str, identity: str, seat: int):
+        self.nick = nick
+        self.identity = identity
+        self.seat = seat
+        self.alive = True
+        self.max_hp = 4
+        self.hp = 4
+        self.used_sha = False   # 本回合是否已出杀
+        self.skip_play = False  # 本回合是否跳过出牌阶段（乐不思蜀）
+        self.hand: list[Card] = []
+        self.judgement: list[Card] = []   # 判定区（延时锦囊，后到先判）
+        # 装备区
+        self.weapon: Card | None = None
+        self.armor: Card | None = None
+        self.plus_horse: Card | None = None    # +1 马：别人算到我的距离 +1
+        self.minus_horse: Card | None = None   # -1 马：我算到别人的距离 -1
 
-    def set_id(self, id):
-        self.__id = id
+    @property
+    def range(self) -> int:
+        """攻击范围：装备武器时为武器规格，否则为 1。"""
+        if self.weapon is not None:
+            return int(self.weapon.spec or 1)
+        return 1
 
-    def secret(self):
-        return self.__id
+    @property
+    def is_king(self) -> bool:
+        return self.identity == IDENTITY['king']
 
-    def id(self):
-        if self.is_king() or not(self.is_alive()):
-            return self.__id
-        else:
-            return IDENTITY['unknown']
+    def find(self, cid: int) -> Card | None:
+        for card in self.hand:
+            if card.cid == cid:
+                return card
+        return None
 
-    def is_king(self):
-        return self.__id == IDENTITY['king']
+    def take(self, cid: int) -> Card | None:
+        for i, card in enumerate(self.hand):
+            if card.cid == cid:
+                return self.hand.pop(i)
+        return None
 
-    def is_alive(self):
-        return self.__alive
+    def equips(self) -> list[Card]:
+        return [c for c in (self.weapon, self.armor, self.plus_horse,
+                            self.minus_horse) if c is not None]
 
-    def set_dead(self):
-        self.__alive = False
+    def find_equip(self, cid: int) -> tuple[str, Card] | None:
+        """按 cid 找装备，返回 (槽位名, 牌)。"""
+        for slot in ('weapon', 'armor', 'plus_horse', 'minus_horse'):
+            card = getattr(self, slot)
+            if card is not None and card.cid == cid:
+                return slot, card
+        return None
 
-    def max_hp(self):
-        return self.__max_hp
-
-    def change_max_hp(self, value):
-        self.__max_hp = value
-
-    def hp(self):
-        return self.__hp
-
-    def set_initial_hp(self, value):
-        self.change_max_hp(value)
-        self.__hp = value
-
-    def increase_hp(self):
-        if self.__hp < self.__max_hp:
-            self.__hp += 1
-            return True
-        else:
-            return False
-
-    def decrease_hp(self, value):
-        self.__hp -= value
-
-    def range(self):
-        return self.__range
-
-    def get_card(self, card):
-        self.__cards.append(card)
-
-    def card(self):
-        return self.__cards
-
-    def choose_card(self, card):
-        if card:
-            index = self.__cards.index(card)
-            return self.__cards.pop(index)
-
-    def can_use_sha(self):
-        return self.__use_sha
-
-    def used_sha(self):
-        self.__use_sha = False
+    def public_identity(self) -> str:
+        """对他人可见的身份：主公与死者公开，其余未知。"""
+        if self.is_king or not self.alive:
+            return self.identity
+        return IDENTITY['unknown']

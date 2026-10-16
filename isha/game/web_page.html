@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>irc-sha 三国杀 · 本地热座</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+         background: #2b2b2b; color: #eee; padding: 12px; }
+  h1 { font-size: 18px; }
+  button { cursor: pointer; border: 1px solid #666; border-radius: 4px;
+           background: #444; color: #eee; padding: 6px 14px; font-size: 14px; }
+  button:hover { background: #555; }
+  button:disabled { opacity: .35; cursor: not-allowed; }
+  button.confirm { background: #3a5a3a; border-color: #4da34d; }
+  button.confirm:hover { background: #4a6a4a; }
+  #header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  #header .spacer { flex: 1; }
+  #lobby { margin-top: 80px; text-align: center; color: #aaa; }
+  #lobby p { margin-bottom: 20px; font-size: 15px; }
+  #lobby button { font-size: 16px; padding: 10px 26px; margin: 0 8px; }
+  #banner { margin: 12px 0; padding: 10px 14px; border-radius: 6px;
+            background: #3a4a3a; font-size: 16px; }
+  #banner.win { background: #5a3a3a; font-size: 18px; font-weight: bold; }
+  #banner .you { color: #ffd700; font-size: 14px; margin-left: 8px; }
+  #cd { color: #ffb84d; font-size: 13px; margin-left: 10px; }
+  #table { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .player { width: 120px; padding: 8px; border: 2px solid #555; border-radius: 8px;
+            background: #333; cursor: default; }
+  .player.acting { border-color: #ffd700; }
+  .player.dead { opacity: .45; }
+  .player.targetable { border-color: #4da3ff; cursor: pointer; }
+  .player.targetable:hover { background: #3a4a5a; }
+  .player.chosen { border-color: #4da34d; background: #33473a; }
+  .player .nick { font-weight: bold; font-size: 15px; }
+  .player .hp { color: #ff6b6b; letter-spacing: 2px; }
+  .player .meta { color: #aaa; font-size: 12px; margin-top: 4px; }
+  .player .judge { color: #ffd700; font-size: 12px; margin-top: 4px; }
+  .player .dist { color: #4da3ff; font-size: 12px; margin-top: 2px; }
+  #hand { display: flex; gap: 8px; flex-wrap: wrap; min-height: 110px;
+          padding: 10px; background: #242424; border-radius: 8px; }
+  .card { width: 74px; height: 100px; border: 2px solid #888; border-radius: 6px;
+          background: #f5f0e0; padding: 6px; font-size: 15px; font-weight: bold;
+          display: flex; flex-direction: column; user-select: none; }
+  .card.red { color: #c0392b; }
+  .card.black { color: #222; }
+  .card.playable { cursor: pointer; border-color: #4da3ff; }
+  .card.playable:hover { transform: translateY(-4px); }
+  .card.disabled { opacity: .45; }
+  .card.face_down { background: #555; color: #ccc; border-color: #777; }
+  .card.selected { border-color: #ffd700; transform: translateY(-6px); }
+  .card .name { font-size: 20px; margin-top: 8px; text-align: center; }
+  #actions { display: flex; gap: 10px; margin: 12px 0; align-items: center; }
+  #actions .hint { color: #999; font-size: 13px; }
+  #log { height: 180px; overflow-y: auto; background: #1e1e1e; border-radius: 8px;
+         padding: 8px 12px; font-size: 13px; line-height: 1.7; color: #bbb; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>irc-sha · 本地热座</h1>
+  <span id="counts"></span>
+  <span class="spacer"></span>
+  <button onclick="newGame(5)">新开局（5人）</button>
+  <button onclick="newGame(8)">新开局（8人）</button>
+  <button onclick="doTimeout()">托管一次</button>
+</div>
+
+<div id="lobby" style="display:none">
+  <p>当前没有进行中的对局。<br>所有玩家在此页面轮流操作（热座模式）。</p>
+  <button onclick="newGame(5)">开始 5 人局</button>
+  <button onclick="newGame(8)">开始 8 人局</button>
+</div>
+
+<div id="game" style="display:none">
+  <div id="banner">载入中…</div>
+  <div id="table"></div>
+  <div id="hand"></div>
+  <div id="actions"></div>
+  <div id="log"></div>
+</div>
+
+<script>
+let state = null;
+let selected = new Set();     // 选中的 cid（出牌/弃牌/贯石斧共用）
+let chosenTargets = [];       // 出牌阶段选定的目标 nick（方天画戟可多选）
+let countdown = null;         // 超时倒计时（秒，本地递减）
+let lastAskKey = null;        // 响应窗口标识，变化时清空选择
+
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body || {})
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || '操作失败'); throw new Error(data.error); }
+  return data;
+}
+
+async function refresh() {
+  state = await (await fetch('/api/state')).json();
+  render();
+}
+
+async function act(body) {
+  selected.clear(); chosenTargets = [];
+  state = await api('/api/action', body);
+  render();
+}
+
+async function doTimeout() { selected.clear(); chosenTargets = [];
+  state = await api('/api/timeout'); render(); }
+
+async function newGame(size) {
+  if (state && state.active && !confirm('当前有对局正在进行，确定重开？')) return;
+  selected.clear(); chosenTargets = [];
+  state = await api('/api/new', {size}); render();
+}
+
+function isRed(label) { return label[0] === '♥' || label[0] === '♦'; }
+
+function askKey() {
+  const a = state.pending;
+  return a ? `${a.kind}:${a.player}` : 'none';
+}
+
+// 当前可选的目标玩家集合
+function currentTargets() {
+  const ask = state.pending;
+  if (!ask) return [];
+  if (ask.kind === 'choose_player') return ask.targets || [];
+  if (ask.kind !== 'play' || selected.size === 0) return [];
+  const cids = [...selected];
+  if (cids.length === 2) return ask.zhangba || [];
+  const card = state.hand.find(h => h.cid === cids[0]);
+  return (card && card.targets) || [];
+}
+
+// 当前选中牌可多选目标的上限（方天画戟 > 1，其余为 1）
+function multiLimit() {
+  const ask = state.pending;
+  if (!ask || ask.kind !== 'play' || selected.size !== 1) return 1;
+  const card = state.hand.find(h => h.cid === [...selected][0]);
+  return (card && card.multi) || 1;
+}
+
+function render() {
+  // 大厅 / 对局 视图切换
+  const lobby = !state.active;
+  document.getElementById('lobby').style.display = lobby ? '' : 'none';
+  document.getElementById('game').style.display = lobby ? 'none' : '';
+  if (lobby) {
+    document.getElementById('counts').textContent = '';
+    renderLog();
+    return;
+  }
+
+  const key = askKey();
+  if (key !== lastAskKey) { selected.clear(); chosenTargets = []; lastAskKey = key; }
+
+  document.getElementById('counts').textContent =
+    `第 ${state.turn} 轮 · 牌堆 ${state.deck} · 弃牌堆 ${state.discard}`;
+
+  const banner = document.getElementById('banner');
+  if (state.winner) {
+    banner.className = 'win';
+    banner.innerHTML = `游戏结束，${state.winner} 获胜！`;
+  } else if (state.pending) {
+    banner.className = '';
+    const you = state.you ? `<span class="you">你是：${state.you.identity}</span>` : '';
+    banner.innerHTML = `【${state.pending.player}】${state.pending.hint}${you}`
+      + '<span id="cd"></span>';
+  }
+  countdown = state.timeout_remaining;
+
+  const ask = state.pending;
+  const targets = currentTargets();
+  const table = document.getElementById('table');
+  table.innerHTML = '';
+  for (const p of state.players) {
+    const div = document.createElement('div');
+    div.className = 'player'
+      + (p.alive ? '' : ' dead')
+      + (ask && ask.player === p.nick ? ' acting' : '');
+    if (targets.includes(p.nick)) {
+      div.className += chosenTargets.includes(p.nick) ? ' chosen' : ' targetable';
+      div.onclick = () => clickPlayer(p.nick);
+    }
+    const hp = p.alive ? '♥'.repeat(Math.max(p.hp, 0)) + ` ${p.hp}/${p.max_hp}`
+                       : '阵亡';
+    div.innerHTML = `<div class="nick">${p.nick}</div>
+      <div class="hp">${hp}</div>`
+      + (p.distance !== null && p.distance !== undefined
+         ? `<div class="dist">距当前 ${p.distance}</div>` : '')
+      + `<div class="meta">${p.identity} · 手牌 ${p.hand_count}</div>`
+      + (p.judgement && p.judgement.length
+         ? `<div class="judge">判定区：${p.judgement.join(' ')}</div>` : '')
+      + (p.equips && p.equips.length
+         ? `<div class="judge">装备：${p.equips.join(' ')}</div>` : '');
+    table.appendChild(div);
+  }
+
+  const hand = document.getElementById('hand');
+  hand.innerHTML = '';
+  for (const c of state.hand) {
+    const div = document.createElement('div');
+    div.className = 'card ' + (isRed(c.label) ? 'red' : 'black')
+      + (c.playable ? ' playable' : ' disabled')
+      + (c.face_down ? ' face_down' : '')
+      + (selected.has(c.cid) ? ' selected' : '');
+    const name = c.label.replace(/^[♠♥♣♦][0-9AJQK]+/, '');
+    div.innerHTML = `<div>${c.label.slice(0, -name.length)}</div>
+      <div class="name">${name}</div>`;
+    if (c.playable || (ask && ask.kind === 'play' && ask.zhangba))
+      div.onclick = () => clickCard(c);
+    hand.appendChild(div);
+  }
+  if (!state.hand.length && !state.winner)
+    hand.innerHTML = '<span style="color:#666">（等待中…）</span>';
+
+  renderActions(ask, targets);
+  renderLog();
+}
+
+function renderActions(ask, targets) {
+  const actions = document.getElementById('actions');
+  actions.innerHTML = '';
+  if (!ask || state.winner) return;
+
+  if (ask.kind === 'play') {
+    const limit = multiLimit();
+    const ready = selected.size === 2
+      ? chosenTargets.length > 0
+      : selected.size === 1 && (() => {
+          const card = state.hand.find(h => h.cid === [...selected][0]);
+          return card && card.playable
+            && ((card.targets || []).length === 0 || chosenTargets.length > 0);
+        })();
+    if (selected.size === 0) {
+      addHint(actions, '点击选择要出的牌（丈八蛇矛可任选两张当杀）');
+    } else if (targets.length > 0 && chosenTargets.length === 0) {
+      addHint(actions, limit > 1
+        ? `再点击上方目标玩家（方天画戟：至多 ${limit} 名）`
+        : '再点击上方一名目标玩家');
+    } else {
+      addHint(actions, '确认后生效');
+    }
+    const ok = addBtn(actions, '确定使用', () =>
+      act({type: 'play', cids: [...selected],
+           target: chosenTargets.length <= 1 ? (chosenTargets[0] ?? null)
+                                             : [...chosenTargets]}));
+    ok.className = 'confirm';
+    ok.disabled = !ready;
+    if (selected.size > 0)
+      addBtn(actions, '取消', () => { selected.clear(); chosenTargets = []; render(); });
+    addBtn(actions, '结束出牌', () => act({type: 'pass'}));
+  } else if (ask.kind === 'discard' || ask.kind === 'guanshi') {
+    const need = ask.count;
+    const btn = addBtn(actions, `确定弃牌（${selected.size}/${need}）`,
+      () => act({type: 'discard', cids: [...selected]}));
+    btn.disabled = selected.size !== need;
+    if (ask.kind === 'discard') {
+      addBtn(actions, '自动弃置', () => doTimeout());
+    } else {
+      addBtn(actions, '不强制命中', () => act({type: 'pass'}));
+    }
+  } else if (ask.kind === 'harvest') {
+    addHint(actions, '从下方亮出的牌中点击一张');
+  } else if (ask.kind === 'choose_card') {
+    addHint(actions, '点击选择一张牌（暗牌为目标的手牌，只能按位置盲选）');
+  } else if (ask.kind === 'choose_player') {
+    addHint(actions, '点击上方一名玩家作为出杀目标');
+  } else {
+    const passLabels = {respond_sha: '不出闪', peach: '不出桃',
+                        negate: '不出无懈可击', duel: '不出杀',
+                        respond_aoe: '不出', chase: '不追杀',
+                        qilin: '不射马', borrow_sha: '交出武器'};
+    addHint(actions, '点击可用的牌打出，或');
+    addBtn(actions, passLabels[ask.kind] || '不出', () => act({type: 'pass'}));
+    if (ask.armor) {
+      addBtn(actions, '八卦阵判定', () => act({type: 'play', cids: []}));
+    }
+  }
+}
+
+function renderLog() {
+  const log = document.getElementById('log');
+  if (!log) return;
+  log.innerHTML = (state.log || []).map(l => `<div>${l}</div>`).join('');
+  log.scrollTop = log.scrollHeight;
+}
+
+function clickCard(c) {
+  const ask = state.pending;
+  if (!ask) return;
+  if (ask.kind === 'play') {
+    if (selected.has(c.cid)) {
+      selected.delete(c.cid);
+    } else {
+      const cap = ask.zhangba ? 2 : 1;   // 丈八蛇矛时可任选两张
+      if (selected.size >= cap) selected.clear();
+      selected.add(c.cid);
+    }
+    chosenTargets = [];
+    render();
+  } else if (ask.kind === 'discard' || ask.kind === 'guanshi') {
+    selected.has(c.cid) ? selected.delete(c.cid) : selected.add(c.cid);
+    render();
+  } else {   // respond_sha / peach / chase / qilin / borrow_sha / choose_card / harvest
+    act({type: 'play', cids: [c.cid]});
+  }
+}
+
+function clickPlayer(nick) {
+  const ask = state.pending;
+  if (!ask) return;
+  if (ask.kind === 'choose_player') {
+    act({type: 'play', cids: [], target: nick});
+    return;
+  }
+  const limit = multiLimit();
+  if (chosenTargets.includes(nick)) {
+    chosenTargets = chosenTargets.filter(t => t !== nick);
+  } else {
+    if (chosenTargets.length >= limit) chosenTargets = [];
+    chosenTargets.push(nick);
+  }
+  render();
+}
+
+function addBtn(parent, text, fn) {
+  const b = document.createElement('button');
+  b.textContent = text; b.onclick = fn;
+  parent.appendChild(b); return b;
+}
+
+function addHint(parent, text) {
+  const s = document.createElement('span');
+  s.className = 'hint'; s.textContent = text;
+  parent.appendChild(s);
+}
+
+refresh();
+setInterval(() => { if (!document.hidden) refresh().catch(() => {}); }, 2500);
+setInterval(() => {
+  const el = document.getElementById('cd');
+  if (el && countdown !== null && countdown !== undefined)
+    el.textContent = countdown > 0 ? `⏱ ${countdown--}s` : '⏱ 即将托管…';
+}, 1000);
+</script>
+</body>
+</html>

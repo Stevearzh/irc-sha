@@ -1,21 +1,16 @@
-class calculator:
-    def __init__(self, table):
-        self.__table = table
-        self.__nicks = list(map(lambda p: p.nick(), table.players()))
+"""座位距离：只在存活玩家构成的环上计算（死亡玩家离场，距离随之收缩）。"""
 
-    def distance(self, nick_a=None, nick_b=None):
-        try:
-            pos_a = self.__nicks.index(nick_a)
-            pos_b = self.__nicks.index(nick_b)
-            [max, min] = [pos_a, pos_b] if pos_a > pos_b else [pos_b, pos_a]
 
-            distance = max - min
-            if distance > len(self.__nicks) / 2:
-                distance = len(self.__nicks) - distance
-            return distance
+def cyclic_distance(a: int, b: int, n: int) -> int:
+    d = abs(a - b)
+    return min(d, n - d)
 
-        except Exception as e:
-            return 'NaN'
 
-    def damage(self, source_who, target_who):
-        pass
+def seat_distance(alive_nicks: list[str], nick_a: str, nick_b: str) -> int | str:
+    """alive_nicks 按座次排列；任一玩家不在场（死亡/不存在）返回 'NaN'。"""
+    try:
+        pos_a = alive_nicks.index(nick_a)
+        pos_b = alive_nicks.index(nick_b)
+    except ValueError:
+        return 'NaN'
+    return cyclic_distance(pos_a, pos_b, len(alive_nicks))
